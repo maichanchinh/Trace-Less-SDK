@@ -38,7 +38,7 @@
 
 ## 2. Delivery Plan
 
-| Phase  | Output                        |
+| Phase | Output                        |
 | ------ | ----------------------------- |
 | Week 1 | SDK core + API                |
 | Week 2 | Firebase adapter + sample app |
@@ -86,7 +86,7 @@ TRACELESS SDK cho phép app log **màn hình và hành vi chính** với **tối
 
 ### Core scenario
 
-> “Tôi muốn biết user đang ở màn hình nào khi họ click / tạo doanh thu.”
+> "Tôi muốn biết user đang ở màn hình nào khi họ click / tạo doanh thu."
 
 ---
 
@@ -123,41 +123,59 @@ TRACELESS SDK cho phép app log **màn hình và hành vi chính** với **tối
 * SDK gửi event **ngay khi dev gọi**:
 
 ```kotlin
-Analytics.enterScreen("home")
+Analytics.enterScreen(Screen.Home)
 ```
 
 ---
 
 ### 6.3 Parameters
 
-| Param         | Source | Rule                 |
-| ------------- | ------ | -------------------- |
-| `screen_name` | Dev    | snake_case, business |
-| `session_id`  | SDK    | stable               |
-| `timestamp`   | SDK    | event time           |
+| Param         | Type   | Source | Rule                        |
+| ------------- | ------ | ------ | --------------------------- |
+| `screen_name` | string | SDK    | từ Screen registry         |
+| `is_manual`   | bool   | SDK    | true (luôn là manual event) |
+
+**Lưu ý:** Firebase đã tự động cung cấp `event_timestamp`, `ga_session_id`, `ga_session_number`. SDK KHÔNG cần gửi lại các field này.
 
 ---
 
-### 6.4 Business rules
+### 6.4 Screen Registry (Sealed Class)
 
-* SDK set:
+```kotlin
+sealed class Screen(val name: String) {
+  object Home : Screen("home")
+  object Detail : Screen("detail")
+  object Paywall : Screen("paywall")
+  // Thêm các screen khác theo nhu cầu
+}
+```
 
-  ```text
-  current_screen_name = screen_name
-  ```
-* Mỗi lần gọi → log 1 event
-* Không dedupe
+**Quy tắc:**
+
+* `screen_name` **phải nằm trong registry**
+* Compile-time safety
+* Không thêm runtime cost
 
 ---
 
-### 6.5 Edge cases
+### 6.5 Business rules
 
-* Gọi 2 lần liên tiếp → 2 event
-* Không gọi → không có data (chấp nhận)
+* Mỗi lần gọi `enterScreen` → 1 event
+* SDK set `current_screen_name`
+* SDK set `is_manual = true` (phân biệt với auto-tracking nếu có sau này)
+* Không cho dev override param hệ thống
 
 ---
 
-### 6.6 Acceptance Criteria
+### 6.6 Edge cases
+
+* Enter cùng screen liên tiếp → vẫn log (mỗi lần gọi = 1 event)
+* Background → foreground → screen mới → log bình thường
+* Session mới bắt đầu → `current_screen_name` được reset
+
+---
+
+### 6.7 Acceptance Criteria
 
 **Given**
 
@@ -165,14 +183,16 @@ Analytics.enterScreen("home")
 
 **When**
 
-* enterScreen("home")
-* enterScreen("detail")
+* enterScreen(Screen.Home)
+* enterScreen(Screen.Detail)
+* enterScreen(Screen.Home) (lần thứ 2)
 
 **Then**
 
-* Có 2 screen_view
-* Timestamp tăng dần
-* screen_name đúng
+* Có 3 `screen_view` events
+* `screen_name = "home"`, `"detail"`, `"home"`
+* `is_manual = true` cho tất cả
+* Firebase tự có timestamp, session_id
 
 ---
 
@@ -187,51 +207,75 @@ Ghi nhận **ý định hành động** của user trong ngữ cảnh màn hình
 ### 6.2 Trigger
 
 ```kotlin
-Analytics.trackUI("btn_buy", "click")
+Analytics.trackUI(
+  elementId = "btn_buy",
+  action = UIAction.Click
+)
 ```
 
 ---
 
 ### 6.3 Parameters
 
-| Param         | Source | Rule                   |
-| ------------- | ------ | ---------------------- |
-| `element_id`  | Dev    | btn_, tab_, item_      |
-| `action`      | Dev    | click, submit          |
-| `screen_name` | SDK    | từ current_screen_name |
-| `session_id`  | SDK    | auto                   |
-| `timestamp`   | SDK    | auto                   |
+| Param         | Type   | Source | Rule                    |
+| ------------- | ------ | ------ | ----------------------- |
+| `element_id`  | string | Dev    | chuẩn prefix (btn_, ...) |
+| `action`      | string | SDK    | enum hoặc custom string |
+| `screen_name` | string | SDK    | từ current_screen_name  |
+
+**Lưu ý:** Firebase đã tự động cung cấp `event_timestamp`, `ga_session_id`. SDK KHÔNG cần gửi lại.
 
 ---
 
-### 6.4 Business rules
+### 6.4 Action Enum (Recommended)
+
+```kotlin
+sealed class UIAction(val value: String) {
+  object Click : UIAction("click")
+  object Submit : UIAction("submit")
+  object Scroll : UIAction("scroll")
+  class Custom(val name: String) : UIAction(name)
+}
+```
+
+**Quy tắc:**
+
+* 80% case dùng enum chuẩn (Click, Submit, Scroll)
+* 20% case linh hoạt dùng `Custom("tên_action")`
+
+---
+
+### 6.5 Business rules
 
 * SDK **KHÔNG** yêu cầu dev truyền screen
 * SDK đọc biến `current_screen_name`
-* Nếu null → vẫn gửi event
+* Nếu `current_screen_name` null → `screen_name = null` (vẫn gửi event)
+* SDK tự gắn `screen_name`, không cho dev override
 
 ---
 
-### 6.5 Edge cases
+### 6.6 Edge cases
 
-* Click xảy ra trước screen_view → `screen_name = null`
+* Click xảy ra trước `screen_view` → `screen_name = null`
 * Rapid click → log đầy đủ
 
 ---
 
-### 6.6 Acceptance Criteria
+### 6.7 Acceptance Criteria
 
 **Given**
 
-* current_screen_name = "home"
+* `current_screen_name = "home"`
 
 **When**
 
-* trackUI("btn_buy", "click")
+* trackUI("btn_buy", UIAction.Click)
 
 **Then**
 
-* ui_interaction.screen_name = "home"
+* `ui_interaction.screen_name = "home"`
+* `ui_interaction.element_id = "btn_buy"`
+* `ui_interaction.action = "click"`
 
 ---
 
@@ -266,13 +310,14 @@ Thu doanh thu **thực**, không chỉnh sửa.
 ## 7.1 Public API (final)
 
 ```kotlin
-Analytics.enterScreen(screenName: String)
-
-Analytics.trackUI(
-  elementId: String,
-  action: String,
-  extra: Map<String, Any>? = null
-)
+object Analytics {
+  fun enterScreen(screen: Screen)
+  
+  fun trackUI(
+    elementId: String,
+    action: UIAction
+  )
+}
 ```
 
 ---
@@ -284,7 +329,11 @@ var currentScreenName: String? = null
 var sessionId: String
 ```
 
-👉 **Không có stack, không có instance, không có UUID.**
+**Quy tắc:**
+
+* **Không có** stack, không có instance, không có UUID
+* **Không có** screen_depth (tính bằng SQL nếu cần)
+* Session-aware context only
 
 ---
 
@@ -301,7 +350,7 @@ buildEvent(
 
 ## 7.4 Dispatcher
 
-```text
+```
 Dispatcher
  └── FirebaseAdapter (ON)
  └── Others (OFF)
@@ -343,21 +392,94 @@ Dispatcher
 
 ---
 
+# 10️⃣ CÁC HƯỚNG PHÂN TÍCH SẢN PHẨM CHỈ VỚI 3 EVENT (CORE)
+
+## 10.1 Phân tích Flow & Drop-off (CORE)
+
+**Dựa trên:** `screen_view`
+
+Bạn trả lời được:
+
+* User đi qua bao nhiêu màn hình?
+* Drop mạnh ở screen nào?
+* Flow phổ biến nhất của user trả tiền?
+
+**Ví dụ**
+
+```
+home → detail → paywall → exit
+```
+
+---
+
+## 10.2 Phân tích UX hiệu quả
+
+**Dựa trên:** `ui_interaction + screen_view`
+
+Metric:
+
+* CTR button theo screen
+* Interaction / screen view ratio
+* Screen "đông người xem – ít hành động"
+
+**Câu hỏi trả lời được**
+
+* Nút này có nên đổi vị trí?
+* Screen này có overload không?
+
+---
+
+## 10.3 Phân tích Revenue theo Screen
+
+**Dựa trên:** `ad_impression + screen_view`
+
+Cách làm:
+
+* Map ad_impression vào screen bằng time window
+
+Bạn biết:
+
+* Screen nào kiếm tiền tốt nhất
+* Screen nào nhiều view nhưng revenue thấp
+
+---
+
+## 10.4 Phân tích Chất lượng Flow (Depth-based - SQL)
+
+**Dựa trên:** `screen_view` + SQL
+
+Nếu cần phân tích depth:
+
+```sql
+SELECT 
+  screen_name,
+  ROW_NUMBER() OVER (PARTITION BY user_pseudo_id, ga_session_id ORDER BY event_timestamp) as depth
+FROM events
+WHERE event_name = 'screen_view'
+```
+
+Insight:
+
+* User đi sâu đến đâu thì bắt đầu thoát?
+* App đang "dài" hay "ngắn"?
+
+---
+
+## 10.5 Phân tích Feature-level (gián tiếp)
+
+**Dựa trên:** `ui_interaction`
+
+* btn_buy click rate
+* submit / view ratio
+* Feature adoption theo screen
+
+---
+
 # 🔚 KẾT LUẬN CUỐI (PM THỰC CHIẾN)
 
-* Đây là **phiên bản “đủ dùng thật”**, không phải bản để khoe kiến trúc
-* SDK:
-
-  * Gọn
-  * Ít state
-  * Dễ maintain
-* Data:
-
-  * Phẳng
-  * Query nhanh
-  * Không JOIN đau đầu
-
-**Câu chốt:**
-
-> *TRACELESS không cố theo dõi mọi thứ – nó chỉ theo dõi những thứ đáng quyết định.*
-
+* ✅ 3 event này **ĐỦ dùng cho 80% product decision**
+* ✅ SDK gọn, dev nhẹ, data không rác
+* ✅ Không khóa kiến trúc cho tương lai
+* ✅ Firebase đã có sẵn timestamp, session_id → SDK không thừa
+* ✅ Screen Registry đảm bảo type-safety, không typo
+* ✅ Action Enum chuẩn hóa data, tránh "click" vs "CLICK" vs "clk"
