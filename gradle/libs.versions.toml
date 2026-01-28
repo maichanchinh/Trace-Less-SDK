@@ -39,5 +39,5 @@ timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "tim
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-maven-publish = { id = "com.vanniktech.maven.publish", version = "0.30.0" }
+maven-publish = { id = "com.vanniktech.maven.publish", version = "0.36.0" }
 

@@ -6,6 +6,9 @@ plugins {
 val versionMajor = 2
 val versionMinor = 0
 val versionPatch = 0
+val versionBuild = 0
+
+val versionCode = versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
 val versionNameLibrary = "${versionMajor}.${versionMinor}.${versionPatch}"
 
 val configGroupID = "io.github.maichanchinh"
@@ -14,11 +17,12 @@ val configArtifactId = "traceless-analytic"
 mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
     signAllPublications()
+
     coordinates(configGroupID, configArtifactId, versionNameLibrary)
     pom {
         name.set("Traceless Analytics SDK")
         description.set("Android analytics SDK for Firebase-first tracking")
-        inceptionYear.set("2025")
+        inceptionYear.set("2026")
         url.set("https://github.com/maichanchinh/SDKTraceLess")
         licenses {
             license {

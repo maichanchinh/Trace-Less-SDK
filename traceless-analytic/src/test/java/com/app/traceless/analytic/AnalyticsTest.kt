@@ -76,7 +76,7 @@ class AnalyticsTest {
     
     @Test
     fun `Analytics events flow is accessible`() = runTest {
-        val events = Analytics.events
+        val events = Analytics.listenEvents()
         assertNotNull(events)
     }
 }
