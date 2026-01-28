@@ -1,6 +1,17 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.maven.publish)
 }
+
+val versionMajor = 2
+val versionMinor = 0
+val versionPatch = 0
+val versionNameLibrary = "${versionMajor}.${versionMinor}.${versionPatch}"
+
+val configGroupID = "io.github.maichanchinh"
+val configArtifactId = "traceless-analytic"
 
 android {
     namespace = "com.app.traceless.analytic"
@@ -25,16 +36,54 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        }
     }
 }
 
-dependencies {
+    dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    debugImplementation(libs.timber)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+    coordinates(configGroupID, configArtifactId, versionNameLibrary)
+    pom {
+        name.set("Traceless Analytics SDK")
+        description.set("Android analytics SDK for Firebase-first tracking")
+        inceptionYear.set("2025")
+        url.set("https://github.com/chinhmc/SDKTraceLess")
+        licenses {
+            license {
+                name.set("The Apache Software License, Version 2.0")
+                url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+            }
+        }
+        developers {
+            developer {
+                id.value("chinhmc")
+                name.value("ChinhMC")
+                email.value("chinhmc@example.com")
+            }
+        }
+        scm {
+            connection.value("scm:git@github.com/chinhmc/SDKTraceLess.git")
+            developerConnection.value("scm:git@github.com/chinhmc/SDKTraceLess.git")
+            url.value("https://github.com/chinhmc/SDKTraceLess")
+        }
+    }
 }
