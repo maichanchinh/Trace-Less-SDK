@@ -30,7 +30,11 @@ class TracelessApplication : Application() {
         }
         
         // Initialize SDK (no Firebase dependency here)
-        Analytics.initialize()
+        Analytics.apply {
+            enableDebug()
+            initialize()
+        }
+
         
 //        // Initialize Firebase adapter (has Firebase dependency)
 //        firebaseAdapter = FirebaseAdapter(this)
@@ -38,9 +42,8 @@ class TracelessApplication : Application() {
 
 
         CoroutineScope(Dispatchers.Main).launch {
-            Analytics.events.collectLatest { event ->
-                Timber.d("[Tracker] Collecting event: name: ${event.name}, screen: ${event.screenName}, manual: ${event.isManual},",
-                    " element: ${event.elementId}, action: ${event.action}, params: ${event.params}")
+            Analytics.listenEvents().collectLatest { event ->
+                Timber.tag("app.analytic").d(message = "[Tracker] Collecting event: name: ${event.name}, screen: ${event.screenName}, manual: ${event.isManual},\n element: ${event.elementId}, action: ${event.action}, params: ${event.params}")
                 // Dispatch to Firebase Analytics
             }
         }

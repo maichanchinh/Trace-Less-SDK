@@ -1,5 +1,6 @@
 package com.app.traceless
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -41,7 +42,13 @@ class HomeActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SDKTraceLessTheme {
-                SDKDemoApp()
+                SDKDemoApp {
+                    when(it) {
+                        "feature" -> {
+                            startActivity(Intent(this, FeatureActivity::class.java))
+                        }
+                    }
+                }
             }
         }
     }
@@ -53,7 +60,9 @@ class HomeActivity : ComponentActivity() {
 }
 
 @Composable
-fun SDKDemoApp() {
+fun SDKDemoApp(
+    onNavigate: (String) -> Unit = {}
+) {
     var currentScreen by remember { mutableStateOf("home") }
     
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -132,7 +141,10 @@ fun SDKDemoApp() {
 //                }
                 
                 item {
-                    GoToFeatureCard()
+                    GoToFeatureCard{
+                        Analytics.trackUI("btn_go_to_feature", UIAction.Click)
+                        onNavigate.invoke("feature")
+                    }
                 }
                 
                 item {
@@ -186,8 +198,9 @@ fun ButtonGroupCard(
 }
 
 @Composable
-fun GoToFeatureCard() {
+fun GoToFeatureCard(onButtonClick: () -> Unit) {
     Card(
+        onClick =onButtonClick ,
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -204,9 +217,7 @@ fun GoToFeatureCard() {
             )
             
             Button(
-                onClick = {
-                    Analytics.trackUI("btn_go_to_feature", UIAction.Click)
-                },
+                onClick = onButtonClick,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(

@@ -16,7 +16,8 @@ import timber.log.Timber
  * Usage:
  *   Analytics.enterScreen(Screen.Home)
  *   Analytics.trackUI("btn_buy", UIAction.Click)
- *   Analytics.events.collect { event -> ... }
+ * Listen to events:
+ *   Analytics.listenEvents.collect { event -> ... }
  */
 object Analytics {
     
@@ -32,7 +33,29 @@ object Analytics {
     /**
      * Public Flow of events for Firebase adapter to collect
      */
-    val events: SharedFlow<TracelessEvent> = _eventChannel.asSharedFlow()
+    private val events: SharedFlow<TracelessEvent> = _eventChannel.asSharedFlow()
+
+    /**
+     * Listen events
+     */
+    fun listenEvents(): SharedFlow<TracelessEvent> = events
+
+    /**
+     * Enable or disable debug mode
+     */
+    fun enableDebug(): Analytics {
+        _debugMode = true
+        return this
+    }
+
+    /**
+     * Disable debug mode
+     */
+    fun disableDebug(): Analytics {
+        _debugMode = false
+        return this
+    }
+
     
     /**
      * Enter a new screen. Emits screen_view event.
@@ -44,7 +67,7 @@ object Analytics {
         require(screen.name.isNotBlank()) { "Screen name cannot be blank" }
         
         if (_debugMode) {
-            Timber.d("[Traceless] ENTER_SCREEN: ${screen.name}")
+            Timber.tag("Traceless").d("[Traceless] ENTER_SCREEN: ${screen.name}")
         }
         
         val event = EventBuilder.buildScreenView(screen)
@@ -62,7 +85,7 @@ object Analytics {
         require(elementId.isNotBlank()) { "Element ID cannot be blank" }
         
         if (_debugMode) {
-            Timber.d("[Traceless] TRACK_UI: $elementId ${action.value} (screen: ${_state.currentScreenName ?: "none"})")
+            Timber.tag("Traceless").d("[Traceless] TRACK_UI: $elementId ${action.value} (screen: ${_state.currentScreenName ?: "none"})")
         }
         
         val event = EventBuilder.buildUIInteraction(
@@ -79,14 +102,14 @@ object Analytics {
      */
     fun resetState() {
         if (_debugMode) {
-            Timber.d("[Traceless] RESET_STATE: clearing current screen and session data")
+            Timber.tag("Traceless").d("[Traceless] RESET_STATE: clearing current screen and session data")
         }
         _state.reset()
     }
     
     private fun emit(event: TracelessEvent) {
         if (_debugMode) {
-            Timber.d("[Traceless] EMIT_EVENT: ${event.name} (screen: ${event.screenName ?: "none"})")
+            Timber.tag("Traceless").d("[Traceless] EMIT_EVENT: ${event.name} (screen: ${event.screenName ?: "none"})")
         }
         scope.launch {
             _eventChannel.emit(event)
@@ -96,11 +119,12 @@ object Analytics {
     /**
      * Initialize SDK state (call from Application.onCreate())
      */
-    fun initialize() {
+    fun initialize(): Analytics {
         if (_debugMode) {
-            Timber.d("[Traceless] INIT: initializing Traceless Analytics SDK")
+            Timber.tag("Traceless").d("[Traceless] INIT: initializing Traceless Analytics SDK")
         }
         // Reset state on init
         _state.reset()
+        return this
     }
 }
