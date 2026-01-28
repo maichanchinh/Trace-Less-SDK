@@ -47,7 +47,7 @@ Add the SDK to your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.app.traceless:traceless-analytic:1.0.0")
+    implementation("io.github.maichanchinh:traceless-analytic:2.0.0")
 }
 ```
 
@@ -59,7 +59,7 @@ Initialize the SDK in your `Application` class:
 class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        Analytics._init()
+        Analytics.initialize()
     }
 }
 ```
