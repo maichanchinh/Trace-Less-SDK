@@ -11,8 +11,8 @@ internal object EventBuilder {
             "screen_name" to screen.name,
             "is_manual" to true
         )
-        // Merge custom params
-        customParams?.let { params.putAll(it) }
+        // Validate and normalize custom params, then merge
+        ParamKeyValidator.normalizeParams(customParams)?.let { params.putAll(it) }
         return TracelessEvent(
             name = "screen_view",
             params = params
@@ -32,8 +32,8 @@ internal object EventBuilder {
         currentScreenName?.let {
             params["screen_name"] = it
         }
-        // Merge custom params
-        customParams?.let { params.putAll(it) }
+        // Validate and normalize custom params, then merge
+        ParamKeyValidator.normalizeParams(customParams)?.let { params.putAll(it) }
         return TracelessEvent(
             name = "ui_interaction",
             params = params

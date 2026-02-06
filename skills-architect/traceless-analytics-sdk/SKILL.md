@@ -26,6 +26,21 @@ class MyApplication : Application() {
         super.onCreate()
         if (BuildConfig.DEBUG) Analytics.enableDebug()
         Analytics.initialize()
+
+        // Collect events and dispatch to Firebase
+        CoroutineScope(Dispatchers.Main).launch {
+            Analytics.listenEvents().collectLatest { event ->
+                Firebase.analytics.logEvent(event.name) {
+                    event.params.forEach { (key, value) ->
+                        when (value) {
+                            is String -> param(key, value)
+                            is Long -> param(key, value)
+                            is Double -> param(key, value)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -50,8 +65,11 @@ Analytics (public API)
 ├── enableDebug() / disableDebug() → Debug mode
 ├── enterScreen(screen: UIScreen, customParams?) → screen_view event
 ├── trackUI(elementId: String, action: UIAction, customParams?) → ui_interaction event
+├── listenEvents() → SharedFlow<TracelessEvent> for Firebase integration
 └── resetState() → Reset on new session
 ```
+
+**Key**: Use `listenEvents()` to collect events and dispatch to Firebase Analytics.
 
 ### Custom Parameters
 
@@ -81,6 +99,39 @@ Analytics.trackUI(
 
 **Note**: Custom params merge with default params. Overlapping keys will override defaults.
 
+### Parameter Key Convention
+
+Custom parameter keys must follow **snake_case** convention:
+
+- ✅ Valid: `user_id`, `total_amount`, `item_price`, `campaign_id`
+- ✅ camelCase auto-converted: `userId` → `user_id`, `totalAmount` → `total_amount`
+- ❌ Invalid: `USER-ID`, `total-amount`, `userId!`, `TOTAL_AMOUNT`
+
+```kotlin
+// snake_case - used as-is
+Analytics.trackUI("btn_buy", UIAction.Click, mapOf(
+    "user_id" to "12345",
+    "total_amount" to 99.99
+))
+
+// camelCase - auto-converted to snake_case (logs warning in debug mode)
+Analytics.trackUI("btn_buy", UIAction.Click, mapOf(
+    "userId" to "12345",      // → user_id
+    "totalAmount" to 99.99    // → total_amount
+))
+
+// Invalid - throws IllegalArgumentException
+Analytics.trackUI("btn_buy", UIAction.Click, mapOf(
+    "USER-ID" to "12345"      // ❌ throws error
+))
+```
+
+**Reserved Keys** (avoid overriding):
+- `screen_name`
+- `element_id`
+- `action`
+- `is_manual`
+
 ### Screen Naming Rules
 
 - Use snake_case format
@@ -96,6 +147,71 @@ View, Refresh, Dismiss, Select
 ```
 
 Custom actions: `object LongPress : UIAction("long_press")`
+
+## Firebase Integration
+
+Traceless SDK emits events via `SharedFlow` that you collect and dispatch to Firebase Analytics:
+
+```kotlin
+class MyApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+
+        // 1. Initialize SDK
+        Analytics.enableDebug()
+        Analytics.initialize()
+
+        // 2. Collect events and dispatch to Firebase
+        CoroutineScope(Dispatchers.Main).launch {
+            Analytics.listenEvents().collectLatest { event ->
+                // Debug logging
+                Timber.tag("Analytics").d(
+                    "[Event] ${event.name} | " +
+                    "screen: ${event.screenName} | " +
+                    "element: ${event.elementId} | " +
+                    "action: ${event.action} | " +
+                    "params: ${event.params}"
+                )
+
+                // 3. Dispatch to Firebase Analytics
+                dispatchToFirebase(event)
+            }
+        }
+    }
+
+    private fun dispatchToFirebase(event: TracelessEvent) {
+        val firebaseAnalytics = Firebase.analytics
+        firebaseAnalytics.logEvent(event.name) {
+            event.params.forEach { (key, value) ->
+                when (value) {
+                    is String -> param(key, value)
+                    is Long -> param(key, value)
+                    is Double -> param(key, value)
+                    is Boolean -> param(key, value)
+                }
+            }
+        }
+    }
+}
+```
+
+### Event Structure
+
+Each `TracelessEvent` contains:
+- `name: String` - Event name ("screen_view", "ui_interaction")
+- `params: Map<String, Any>` - Event parameters
+- `timestamp: Long` - Unix timestamp
+- Extension properties:
+  - `screenName: String?` - Current screen name
+  - `elementId: String?` - UI element identifier
+  - `action: String?` - UI action performed
+  - `isManual: Boolean` - Whether event is manually tracked
+
+### Flow Behavior
+
+- Uses `SharedFlow` with `replay=0` - new collectors don't receive past events
+- Buffer capacity: 64 events with `DROP_OLDEST` strategy
+- Collected on `Dispatchers.Main` for safe Firebase calls
 
 ## Jetpack Compose Integration
 
