@@ -13,7 +13,7 @@ Firebase-first Android analytics SDK for tracking screen views and UI interactio
 
 ```kotlin
 dependencies {
-    implementation("io.github.maichanchinh:traceless-analytic:2.0.0")
+    implementation("io.github.maichanchinh:traceless-analytic:2.0.+")
 }
 ```
 
