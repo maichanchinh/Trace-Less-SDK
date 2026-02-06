@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(ln:*)",
-      "Bash(uvx --with pyyaml python:*)"
+      "Bash(uvx --with pyyaml python:*)",
+      "mcp__fetch__fetch",
+      "Bash(git config:*)"
     ]
   }
 }

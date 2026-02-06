@@ -2,21 +2,28 @@
 package com.app.traceless.analytic
 
 internal object EventBuilder {
-    
-    fun buildScreenView(screen: UIScreen): TracelessEvent {
+
+    fun buildScreenView(
+        screen: UIScreen,
+        customParams: Map<String, Any>? = null
+    ): TracelessEvent {
+        val params = mutableMapOf<String, Any>(
+            "screen_name" to screen.name,
+            "is_manual" to true
+        )
+        // Merge custom params
+        customParams?.let { params.putAll(it) }
         return TracelessEvent(
             name = "screen_view",
-            params = mapOf(
-                "screen_name" to screen.name,
-                "is_manual" to true
-            )
+            params = params
         )
     }
-    
+
     fun buildUIInteraction(
         elementId: String,
         action: UIAction,
-        currentScreenName: String?
+        currentScreenName: String?,
+        customParams: Map<String, Any>? = null
     ): TracelessEvent {
         val params = mutableMapOf<String, Any>(
             "element_id" to elementId,
@@ -25,6 +32,8 @@ internal object EventBuilder {
         currentScreenName?.let {
             params["screen_name"] = it
         }
+        // Merge custom params
+        customParams?.let { params.putAll(it) }
         return TracelessEvent(
             name = "ui_interaction",
             params = params

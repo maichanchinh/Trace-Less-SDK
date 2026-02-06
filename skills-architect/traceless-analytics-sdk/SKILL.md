@@ -36,6 +36,10 @@ Analytics.enterScreen(UIScreen.Splash)
 // Track UI interactions
 Analytics.trackUI("btn_buy", UIAction.Click)
 Analytics.trackUI("input_email", UIAction.Input)
+
+// With custom parameters
+Analytics.enterScreen(Screen.Home, mapOf("source" to "notification"))
+Analytics.trackUI("btn_buy", UIAction.Click, mapOf("value" to 99.99))
 ```
 
 ## Core API
@@ -44,10 +48,38 @@ Analytics.trackUI("input_email", UIAction.Input)
 Analytics (public API)
 ├── initialize() → Initialize SDK
 ├── enableDebug() / disableDebug() → Debug mode
-├── enterScreen(screen: UIScreen) → screen_view event
-├── trackUI(elementId: String, action: UIAction) → ui_interaction event
+├── enterScreen(screen: UIScreen, customParams?) → screen_view event
+├── trackUI(elementId: String, action: UIAction, customParams?) → ui_interaction event
 └── resetState() → Reset on new session
 ```
+
+### Custom Parameters
+
+Both `enterScreen()` and `trackUI()` accept optional custom parameters:
+
+```kotlin
+// Screen view with custom params
+Analytics.enterScreen(
+    screen = Screen.Home,
+    customParams = mapOf(
+        "source" to "deeplink",
+        "campaign" to "summer2024"
+    )
+)
+
+// UI interaction with custom params
+Analytics.trackUI(
+    elementId = "btn_buy",
+    action = UIAction.Click,
+    customParams = mapOf(
+        "value" to 99.99,
+        "currency" to "USD",
+        "item_id" to "prod_123"
+    )
+)
+```
+
+**Note**: Custom params merge with default params. Overlapping keys will override defaults.
 
 ### Screen Naming Rules
 

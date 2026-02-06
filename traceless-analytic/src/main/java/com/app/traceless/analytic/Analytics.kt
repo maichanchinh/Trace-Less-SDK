@@ -59,39 +59,51 @@ object Analytics {
     
     /**
      * Enter a new screen. Emits screen_view event.
-     * 
+     *
      * @param screen The screen to enter (must be in Screen registry)
+     * @param customParams Optional map of custom parameters to include with the event
      * @throws IllegalArgumentException if screen is not in registry
      */
-    fun enterScreen(screen: UIScreen) {
+    fun enterScreen(screen: UIScreen, customParams: Map<String, Any>? = null) {
         require(screen.name.isNotBlank()) { "Screen name cannot be blank" }
-        
+
         if (_debugMode) {
-            Timber.tag("Traceless").d("[Traceless] ENTER_SCREEN: ${screen.name}")
+            val paramsStr = customParams?.let { " params: $it" } ?: ""
+            Timber.tag("Traceless").d("[Traceless] ENTER_SCREEN: ${screen.name}$paramsStr")
         }
-        
-        val event = EventBuilder.buildScreenView(screen)
+
+        val event = EventBuilder.buildScreenView(screen, customParams)
         _state.updateScreen(screen.name)
         emit(event)
     }
     
     /**
      * Track UI interaction. Emits ui_interaction event with current screen context.
-     * 
+     *
      * @param elementId The element identifier (e.g., "btn_buy")
      * @param action The UI action (click, submit, scroll, or custom)
+     * @param customParams Optional map of custom parameters to include with the event
      */
-    fun trackUI(elementId: String, action: UIAction) {
+    fun trackUI(
+        elementId: String,
+        action: UIAction,
+        customParams: Map<String, Any>? = null
+    ) {
         require(elementId.isNotBlank()) { "Element ID cannot be blank" }
-        
+
         if (_debugMode) {
-            Timber.tag("Traceless").d("[Traceless] TRACK_UI: $elementId ${action.value} (screen: ${_state.currentScreenName ?: "none"})")
+            val paramsStr = customParams?.let { " params: $it" } ?: ""
+            Timber.tag("Traceless").d(
+                "[Traceless] TRACK_UI: $elementId ${action.value} " +
+                "(screen: ${_state.currentScreenName ?: "none"})$paramsStr"
+            )
         }
-        
+
         val event = EventBuilder.buildUIInteraction(
             elementId = elementId,
             action = action,
-            currentScreenName = _state.currentScreenName
+            currentScreenName = _state.currentScreenName,
+            customParams = customParams
         )
         emit(event)
     }
