@@ -4,7 +4,9 @@
       "Bash(ln:*)",
       "Bash(uvx --with pyyaml python:*)",
       "mcp__fetch__fetch",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd custom parameter key validation with auto camelCase to snake_case conversion\n\n- Add ParamKeyValidator: validates and normalizes param keys to snake_case\n- Auto-convert camelCase keys \\(e.g., userId → user_id\\) with debug warning\n- Throw IllegalArgumentException for invalid key formats \\(kebab-case, etc.\\)\n- Update EventBuilder to use validator before merging custom params\n- Update SKILL.md: Add Firebase Integration section with listenEvents\\(\\) usage\n- Update SKILL.md: Add Parameter Key Convention documentation\nEOF\n\\)\")"
     ]
   }
 }

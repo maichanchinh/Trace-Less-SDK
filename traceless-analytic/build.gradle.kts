@@ -5,7 +5,7 @@ plugins {
 
 val versionMajor = 2
 val versionMinor = 0
-val versionPatch = 0
+val versionPatch = 1
 val versionBuild = 0
 
 val versionCode = versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
