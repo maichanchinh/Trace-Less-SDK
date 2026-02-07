@@ -17,9 +17,34 @@ dependencies {
 }
 ```
 
+## Package Imports
+
+```kotlin
+// Core SDK
+import com.app.traceless.analytic.Analytics
+import com.app.traceless.analytic.UIAction
+import com.app.traceless.analytic.UIScreen
+import com.app.traceless.analytic.TracelessEvent
+
+// Coroutines (for collecting events)
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+```
+
 ## Quick Start
 
 ```kotlin
+// Imports
+import com.app.traceless.analytic.Analytics
+import com.app.traceless.analytic.UIAction
+import com.app.traceless.analytic.UIScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+
 // Setup in Application.onCreate()
 class MyApplication : Application() {
     override fun onCreate() {
@@ -53,7 +78,7 @@ Analytics.trackUI("btn_buy", UIAction.Click)
 Analytics.trackUI("input_email", UIAction.Input)
 
 // With custom parameters
-Analytics.enterScreen(Screen.Home, mapOf("source" to "notification"))
+Analytics.enterScreen(UIScreen.Main, mapOf("source" to "notification"))
 Analytics.trackUI("btn_buy", UIAction.Click, mapOf("value" to 99.99))
 ```
 
@@ -153,6 +178,20 @@ Custom actions: `object LongPress : UIAction("long_press")`
 Traceless SDK emits events via `SharedFlow` that you collect and dispatch to Firebase Analytics:
 
 ```kotlin
+import android.app.Application
+import com.app.traceless.analytic.Analytics
+import com.app.traceless.analytic.TracelessEvent
+import com.google.firebase.Firebase
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.analytics
+import com.google.firebase.analytics.logEvent
+import com.google.firebase.analytics.param
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import timber.log.Timber
+
 class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
