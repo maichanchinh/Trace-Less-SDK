@@ -33,6 +33,31 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 ```
 
+## Screen Management
+
+Define all app screens in **one place** using a sealed class:
+
+```kotlin
+// screens/AppScreens.kt - Centralized screen definitions
+sealed class AppScreens : UIScreen() {
+    data object Splash : AppScreens("splash")
+    data object Home : AppScreens("home")
+    data object ProductDetail : AppScreens("product_detail")
+    data object Settings : AppScreens("settings")
+    data object Profile : AppScreens("profile")
+}
+
+// Usage
+Analytics.enterScreen(AppScreens.Home)
+Analytics.enterScreen(AppScreens.ProductDetail)
+```
+
+**Benefits**:
+- Single source of truth for all screens
+- Compile-time safety (exhaustive when branching)
+- Easy to refactor screen names
+- Prevents typos and duplicate definitions
+
 ## Quick Start
 
 ```kotlin
@@ -70,15 +95,15 @@ class MyApplication : Application() {
 }
 
 // Track screen views
-Analytics.enterScreen(UIScreen.Main)
-Analytics.enterScreen(UIScreen.Splash)
+Analytics.enterScreen(AppScreens.Splash)
+Analytics.enterScreen(AppScreens.Home)
 
 // Track UI interactions
 Analytics.trackUI("btn_buy", UIAction.Click)
 Analytics.trackUI("input_email", UIAction.Input)
 
 // With custom parameters
-Analytics.enterScreen(UIScreen.Main, mapOf("source" to "notification"))
+Analytics.enterScreen(AppScreens.Home, mapOf("source" to "notification"))
 Analytics.trackUI("btn_buy", UIAction.Click, mapOf("value" to 99.99))
 ```
 
@@ -88,7 +113,7 @@ Analytics.trackUI("btn_buy", UIAction.Click, mapOf("value" to 99.99))
 Analytics (public API)
 ├── initialize() → Initialize SDK
 ├── enableDebug() / disableDebug() → Debug mode
-├── enterScreen(screen: UIScreen, customParams?) → screen_view event
+├── enterScreen(screen: AppScreens, customParams?) → screen_view event
 ├── trackUI(elementId: String, action: UIAction, customParams?) → ui_interaction event
 ├── listenEvents() → SharedFlow<TracelessEvent> for Firebase integration
 └── resetState() → Reset on new session
@@ -103,7 +128,7 @@ Both `enterScreen()` and `trackUI()` accept optional custom parameters:
 ```kotlin
 // Screen view with custom params
 Analytics.enterScreen(
-    screen = Screen.Home,
+    screen = AppScreens.Home,
     customParams = mapOf(
         "source" to "deeplink",
         "campaign" to "summer2024"
@@ -258,7 +283,7 @@ Each `TracelessEvent` contains:
 // Recommended: TrackScreen helper
 @Composable
 fun ProductDetailScreen() {
-    TrackScreen(Screens.ProductDetail)  // Auto track once
+    TrackScreen(AppScreens.ProductDetail)  // Auto track once
 
     Button(onClick = {
         Analytics.trackUI("btn_buy", UIAction.Click)
@@ -271,7 +296,7 @@ fun ProductDetailScreen() {
 @Composable
 fun MyScreen() {
     LaunchedEffect(Unit) {
-        Analytics.enterScreen(Screens.Home)
+        Analytics.enterScreen(AppScreens.Home)
     }
 }
 ```
